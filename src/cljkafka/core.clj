@@ -1,6 +1,5 @@
 (ns cljkafka.core
-  (:require [inspector.core :refer :all]
-                  [clojurewerkz.propertied.properties :refer [map->properties]])
+  (:require [clojurewerkz.propertied.properties :refer [map->properties]])
   (:import [org.apache.kafka.clients.consumer KafkaConsumer]
                  [org.apache.kafka.clients.producer KafkaProducer ProducerRecord]))
 
