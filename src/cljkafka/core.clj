@@ -41,13 +41,15 @@
 
 (defprotocol Consume
     "Protocol for Kafka consumers"
-    (consume-loop [ this topic callback ] "Consumes messages infinitely")
     (subscribe [ this topic ] "Subscribes to one topic")
+    (consume-loop [ this topic callback ] "Consumes messages infinitely")
+    (stop-consume-loop [ this ])
 )
 
 
 ;; Producer
 ;;
+;; Totally thread safe and asynchronous, share it between multiple threads.
 
 (defrecord Producer [ producer properties ]
     Close    
@@ -74,24 +76,37 @@
 
 ;; Consumer
 ;;
+;; NOT thread safe! Create new consumer for each thread!
+;; Running consume-loop on one thread you make stop from the
+;; other thread with function stop-consume-loop.
+;; More on multithreading read here:
+;; https://kafka.apache.org/090/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html
 
-(defrecord Consumer [ consumer properties timeout ]
+(defrecord Consumer [ consumer properties timeout consuming ]
     Close
     (close [ _ ]
         (.close consumer)
     )
 
     Consume
-    (subscribe [ this topic ]
+    (subscribe [ _ topic ]
         (.subscribe consumer [ topic ])
     )
     
-    (consume-loop [ this topic callback ]
-        (while true
-            (let [ polled (.poll consumer timeout)
-                   rs (seq (.records polled topic))
-                 ]
-                 (dorun (map #(callback (.value %)) rs))))
+    (consume-loop [ _ topic callback ]
+        (reset! consuming true)
+        (try
+            (while @consuming
+                (let [ polled (.poll consumer timeout)
+                       rs (seq (.records polled topic))
+                     ]
+                     (dorun (map #(callback (.value %)) rs))))
+            (catch WakeupException e))
+    )
+
+    (stop-consume-loop [ _ ]
+        (reset! consuming false)
+        (.wakeup consumer)
     )
 )
 
@@ -100,5 +115,7 @@
     ([ properties timeout ]
         (map->Consumer {:consumer (new KafkaConsumer (map->properties (merge *consumer-properties* properties)))
                         :properties properties
-                        :timeout timeout}))
+                        :timeout timeout
+                        :consuming (atom false)}))
 )
+
