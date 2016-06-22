@@ -8,15 +8,14 @@ The library is very simple yet customizable enough.
 
     (require '[cljkafka.core :refer :all])
 
-    (with-producer p {}
-                   (send! p "test" "message from clojure"))
+    (def p (create-producer))
+    (send! p "test" "hello from clojure!")
 
-    (with-consumer c {} ["test"]                       ;; List of subscribed topics -- ["test"]
-                   (while true
-                          (println (poll c "test" 100)))) ;; 100ms -- timeout
+    (def c (create-consumer))
+    (subscribe c "test")
+    (consume-loop c "test" println)
 
-     (with-consumer c {} ["test"]
-                    (poll-loop c "test" println))           ;; Check infinitely
+The library implements a common pattern of consuming messages using loop. More on this see [https://kafka.apache.org/090/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html](here). 
 
 Copyright © 2016 by Dmitry Bushenko
 
