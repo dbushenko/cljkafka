@@ -15,7 +15,7 @@ The library is very simple yet customizable enough.
     (subscribe c "test")
     (consume-loop c "test" println)
 
-The library implements a common pattern of consuming messages using loop. More on this see (https://kafka.apache.org/090/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html)[here]. 
+The library implements a common pattern of consuming messages using loop. More on this see [here](https://kafka.apache.org/090/javadoc/index.html?org/apache/kafka/clients/consumer/KafkaConsumer.html). 
 
 Copyright © 2016 by Dmitry Bushenko
 
