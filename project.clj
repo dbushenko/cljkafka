@@ -1,4 +1,4 @@
-(defproject cljkafka "0.3.3-SNAPSHOT"
+(defproject cljkafka "0.3.4-SNAPSHOT"
   :description "Simple kafka wrapper"
   :url "https://github.com/dbushenko/cljkafka"
   :license {:name "Eclipse Public License"

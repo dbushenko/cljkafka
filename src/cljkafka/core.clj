@@ -126,9 +126,11 @@
 )
 
 ;; Uses raw java properties
-(defn create-consumer-with-props [ properties ]
+(defn create-consumer-with-props
+ ([ properties ] (create-consumer-with-props properties 1000))
+ ([ properties timeout ]
     (map->Consumer {:consumer (new KafkaConsumer properties)
                     :properties properties
                     :timeout timeout
-                    :consuming (atom false)})
+                    :consuming (atom false)}))
 )
