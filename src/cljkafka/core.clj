@@ -77,7 +77,7 @@
 ;; Uses raw java properties
 (defn create-producer-with-props [ properties ]
     (map->properties { :producer (new KafkaProducer properties)
-                     , :properties properties}
+                     , :properties properties})
 )
 
 ;; Consumer
