@@ -74,6 +74,12 @@
                        , :properties properties}))
 )
 
+;; Uses raw java properties
+(defn create-producer-with-props [ properties ]
+    (map->properties { :producer (new KafkaProducer properties)
+                     , :properties properties}
+)
+
 ;; Consumer
 ;;
 ;; NOT thread safe! Create new consumer for each thread!
@@ -119,3 +125,10 @@
                         :consuming (atom false)}))
 )
 
+;; Uses raw java properties
+(defn create-consumer-with-props [ properties ]
+    (map->Consumer {:consumer (new KafkaConsumer properties)
+                    :properties properties
+                    :timeout timeout
+                    :consuming (atom false)})
+)
