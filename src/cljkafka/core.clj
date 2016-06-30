@@ -1,8 +1,12 @@
 (ns cljkafka.core
-  (:require [clojurewerkz.propertied.properties :refer [map->properties]])
+  (:require [clojurewerkz.propertied.properties :refer [map->properties]]
+            [clojure.string :as s]
+            [taoensso.timbre :as log])
   (:import [org.apache.kafka.clients.consumer KafkaConsumer]
            [org.apache.kafka.clients.producer KafkaProducer ProducerRecord]
-           [org.apache.kafka.common.errors WakeupException]))
+           [org.apache.kafka.common.errors WakeupException]
+           [java.net URI]
+           [com.github.jkutner EnvKeyStore]))
 
 ;; Default properties
 ;;
@@ -125,12 +129,78 @@
                         :consuming (atom false)}))
 )
 
-;; Uses raw java properties
-(defn create-consumer-with-props
- ([ properties ] (create-consumer-with-props properties 1000))
- ([ properties timeout ]
-    (map->Consumer {:consumer (new KafkaConsumer properties)
-                    :properties properties
-                    :timeout timeout
-                    :consuming (atom false)}))
+;; for heroku
+
+(defn- producer-properties [ url ]
+    (try
+        (let [uri (URI. url)
+              host (.getHost uri)
+              port (.getPort uri)
+              envTrustStore (EnvKeyStore/createWithRandomPassword "KAFKA_TRUSTED_CERT")
+              envKeyStore (EnvKeyStore/createWithRandomPassword "KAFKA_CLIENT_CERT_KEY" "KAFKA_CLIENT_CERT")
+              trustStore (.storeTemp envTrustStore)
+              keyStore (.storeTemp envKeyStore)
+              ]
+              {"security.protocol" (if (.equals (.getScheme uri) "kafka") "PLAINTEXT" "SSL")
+               "ssl.truststore.type" (.type envTrustStore)
+               "ssl.truststore.location" (.getAbsolutePath trustStore)
+               "ssl.truststore.password" (.password envTrustStore)
+               "ssl.keystore.type" (.type envKeyStore)
+               "ssl.keystore.location" (.getAbsolutePath keyStore)
+               "ssl.keystore.password" (.password envKeyStore)
+               "bootstrap.servers" (str host ":" port)
+               "acks" "all"
+               "retries" "0"
+               "batch.size" "16384"
+               "linger.ms" "1"
+               "buffer.memory" "33554432"
+               "key.serializer" "org.apache.kafka.common.serialization.StringSerializer"
+               "value.serializer" "org.apache.kafka.common.serialization.StringSerializer"
+              }
+        )
+        (catch Exception e))
+)
+
+(defn heroku-producers []
+    (when-not (nil? (System/getenv "KAFKA_URL"))
+        (filter (comp not nil?)
+                (map producer-properties
+                     (s/split (System/getenv "KAFKA_URL") #","))))
+)
+
+
+
+(defn- consumer-properties [ url ]
+    (try
+        (let [uri (URI. url)
+              host (.getHost uri)
+              port (.getPort uri)
+              envTrustStore (EnvKeyStore/createWithRandomPassword "KAFKA_TRUSTED_CERT")
+              envKeyStore (EnvKeyStore/createWithRandomPassword "KAFKA_CLIENT_CERT_KEY" "KAFKA_CLIENT_CERT")
+              trustStore (.storeTemp envTrustStore)
+              keyStore (.storeTemp envKeyStore)
+              ]
+              {"security.protocol" (if (.equals (.getScheme uri) "kafka") "PLAINTEXT" "SSL")
+               "ssl.truststore.type" (.type envTrustStore)
+               "ssl.truststore.location" (.getAbsolutePath trustStore)
+               "ssl.truststore.password" (.password envTrustStore)
+               "ssl.keystore.type" (.type envKeyStore)
+               "ssl.keystore.location" (.getAbsolutePath keyStore)
+               "ssl.keystore.password" (.password envKeyStore)
+               "bootstrap.servers" (str host ":" port)
+               "group.id" "test"
+               "enable.auto.commit" "true"
+               "auto.commit.interval.ms" "1000"
+               "session.timeout.ms" "30000"
+               "key.deserializer" "org.apache.kafka.common.serialization.StringDeserializer"
+               "value.deserializer" "org.apache.kafka.common.serialization.StringDeserializer"              }
+        )
+        (catch Exception e))
+)
+
+(defn heroku-consumers []
+    (when-not (nil? (System/getenv "KAFKA_URL"))
+        (filter (comp not nil?)
+                (map consumer-properties
+                     (s/split (System/getenv "KAFKA_URL") #","))))
 )
